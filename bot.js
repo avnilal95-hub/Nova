@@ -240,5 +240,29 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
+// Express Endpoint: Fetch all actual servers
+app.get('/api/user/guilds', async (req, res) => {
+  try {
+    // Map all real guilds Nova™ is currently joined to
+    const botGuilds = client.guilds.cache.map(guild => ({
+      id: guild.id,
+      name: guild.name,
+      icon: guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png',
+      banner: guild.bannerURL({ size: 600 }) || null,
+      memberCount: guild.memberCount,
+      description: guild.description || 'Active Nova™ protected server.',
+      botJoined: true
+    }));
+
+    return res.json({
+      success: true,
+      guilds: botGuilds
+    });
+  } catch (err) {
+    console.error('[Nova™ Guild Fetch Error]', err);
+    return res.status(500).json({ error: 'Failed to fetch active bot servers.' });
+  }
+});
+
 // Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
