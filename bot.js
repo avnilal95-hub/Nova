@@ -20,18 +20,16 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Serve static website files from public/
-// (HTML files at root, CSS at public/css, JS at public/js)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicit Route Fallbacks
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Node.js Memory Storage for Guild Configuration
+const guildPrefixes = new Map(); // Stores prefix mapping per guild in Node.js memory
 
-// API Endpoint to check bot readiness and statistics
+// Express Endpoint: Health & System Status
 app.get('/api/status', (req, res) => {
   res.json({
     status: client.isReady() ? 'Online' : 'Offline',
+    botName: 'Nova™',
     botUser: client.user ? client.user.tag : null,
     guildCount: client.guilds.cache.size,
     ping: client.ws.ping,
@@ -39,22 +37,65 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// API Endpoint for Discord OAuth2 Login
-app.get('/api/auth/discord', (req, res) => {
-  const clientId = process.env.CLIENT_ID;
-  const redirectUri = encodeURIComponent(`${req.protocol}://${req.get('host')}/api/auth/callback`);
-  const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds`;
-  res.redirect(discordAuthUrl);
+// Express Endpoint: Prefix Management
+app.post('/api/prefix', (req, res) => {
+  const { guildId, prefix } = req.body;
+
+  if (!guildId || !prefix) {
+    return res.status(400).json({ error: 'Missing guildId or prefix' });
+  }
+
+  // Update prefix mapping in Node.js memory (Default: '+')
+  const newPrefix = prefix.trim() || '+';
+  guildPrefixes.set(guildId, newPrefix);
+
+  console.log(`[Nova™] Updated prefix for Guild ${guildId} to: "${newPrefix}"`);
+  
+  return res.json({ 
+    success: true, 
+    prefix: newPrefix 
+  });
 });
 
-app.get('/api/auth/callback', (req, res) => {
-  res.redirect('/servers.html');
+// Express Endpoint: Dispatch Remote Web Announcements
+app.post('/api/message', async (req, res) => {
+  const { channelId, content } = req.body;
+
+  if (!channelId || !content) {
+    return res.status(400).json({ error: 'Channel ID and content are required.' });
+  }
+
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({ error: 'Invalid text channel ID.' });
+    }
+
+    await channel.send(content);
+    return res.json({ success: true, message: 'Broadcast dispatched successfully.' });
+  } catch (err) {
+    console.error('[Nova™ Broadcast Error]', err);
+    return res.status(500).json({ error: 'Failed to dispatch message to Discord.' });
+  }
 });
 
-// Start Express Listener
+// Express Endpoint: Fetch Guild Details for Dashboard
+app.get('/api/guild/:id', async (req, res) => {
+  try {
+    const guild = await client.guilds.fetch(req.params.id);
+    res.json({
+      name: guild.name,
+      memberCount: guild.memberCount,
+      icon: guild.iconURL(),
+    });
+  } catch (err) {
+    res.status(404).json({ error: 'Guild not found or bot not in server' });
+  }
+});
+
+// Start Express Web Server
 app.listen(PORT, () => {
-  console.log(`[Web Server] Running on http://localhost:${PORT}`);
-  console.log(`[Web Server] Serving public website files from: ${path.join(__dirname, 'public')}`);
+  console.log(`[Web Server] Nova™ Dashboard live on http://localhost:${PORT}`);
 });
 
 // ---------------------------------------------------------
@@ -73,24 +114,22 @@ const client = new Client({
 client.commands = new Collection();
 
 // ---------------------------------------------------------
-// 3. DYNAMIC COMMAND HANDLER (Scalable for 200+ Commands)
+// 3. DYNAMIC COMMAND HANDLER (Loads 200+ Commands)
 // ---------------------------------------------------------
 const commandsPath = path.join(__dirname, 'commands');
 const slashCommandsData = [];
 
-// Ensure commands directory exists
 if (!fs.existsSync(commandsPath)) {
   fs.mkdirSync(commandsPath);
 }
 
-// Recursively load all command files from commands/ folder
 function loadCommands(directory) {
   const files = fs.readdirSync(directory, { withFileTypes: true });
 
   for (const file of files) {
     const fullPath = path.join(directory, file.name);
     if (file.isDirectory()) {
-      loadCommands(fullPath); // Load subfolders (e.g. commands/moderation/, commands/fun/)
+      loadCommands(fullPath);
     } else if (file.name.endsWith('.js')) {
       const command = require(fullPath);
       if ('data' in command && 'execute' in command) {
@@ -102,32 +141,31 @@ function loadCommands(directory) {
 }
 
 loadCommands(commandsPath);
-console.log(`[Commands] Loaded ${client.commands.size} commands into memory.`);
+console.log(`[Nova™ Commands] Loaded ${client.commands.size} commands into memory.`);
 
-// Register Slash Commands with Discord Gateway API
 async function registerSlashCommands() {
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try {
-    console.log(`[Discord API] Registering ${slashCommandsData.length} global slash commands...`);
+    console.log(`[Nova™ API] Registering ${slashCommandsData.length} slash commands...`);
     await rest.put(
       Routes.applicationCommands(process.env.CLIENT_ID),
       { body: slashCommandsData }
     );
-    console.log('[Discord API] Successfully registered all slash commands.');
+    console.log('[Nova™ API] Successfully registered all global slash commands.');
   } catch (error) {
-    console.error('[Discord API] Error registering commands:', error);
+    console.error('[Nova™ API Error] Failed to register commands:', error);
   }
 }
 
 // ---------------------------------------------------------
-// 4. RICH PRESENCE & ACTIVITY ROTATION
+// 4. ROTATING PRESENCE & ACTIVITIES
 // ---------------------------------------------------------
 const activities = [
-  { name: '/help | Zyphra Dashboard', type: ActivityType.Listening },
+  { name: '/help | Nova™ Dashboard', type: ActivityType.Listening },
   { name: 'over 200+ Commands', type: ActivityType.Watching },
-  { name: 'Community Events', type: ActivityType.Streaming, url: 'https://twitch.tv/discord' },
-  { name: 'Music & Anti-Nuke', type: ActivityType.Listening },
-  { name: 'Server Activity', type: ActivityType.Watching },
+  { name: 'Community Security Events', type: ActivityType.Streaming, url: 'https://twitch.tv/discord' },
+  { name: 'Music & Anti-Nuke Engine', type: ActivityType.Listening },
+  { name: 'Server Activity & Auto-Mod', type: ActivityType.Watching },
 ];
 
 function setRotatingActivity() {
@@ -139,23 +177,18 @@ function setRotatingActivity() {
       status: 'online',
     });
     currentIndex = (currentIndex + 1) % activities.length;
-  }, 15000); // Rotates activity every 15 seconds
+  }, 15000);
 }
 
 // ---------------------------------------------------------
-// 5. BOT EVENTS & INTERACTION HANDLER
+// 5. BOT READY & INTERACTION HANDLERS
 // ---------------------------------------------------------
 client.once('ready', async () => {
-  console.log(`[Discord Bot] Logged in as ${client.user.tag}`);
-  
-  // Register Slash Commands
+  console.log(`[Nova™ Bot] Logged in as ${client.user.tag}`);
   await registerSlashCommands();
-
-  // Start Status Activity Loop
   setRotatingActivity();
 });
 
-// Handle Slash Command Executions
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -165,21 +198,15 @@ client.on('interactionCreate', async (interaction) => {
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(`Error executing command ${interaction.commandName}:`, error);
+    console.error(`Error executing ${interaction.commandName}:`, error);
+    const errorPayload = { content: 'There was an error executing this command!', ephemeral: true };
     if (interaction.replied || interaction.deferred) {
-      await interaction.followup({ content: 'There was an error executing this command!', ephemeral: true });
+      await interaction.followup(errorPayload);
     } else {
-      await interaction.reply({ content: 'There was an error executing this command!', ephemeral: true });
+      await interaction.reply(errorPayload);
     }
   }
 });
 
-// ---------------------------------------------------------
-// 6. LOGIN WITH DISCORD_TOKEN
-// ---------------------------------------------------------
-if (!process.env.DISCORD_TOKEN) {
-  console.error('[Error] DISCORD_TOKEN is missing in .env file!');
-  process.exit(1);
-}
-
+// Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
