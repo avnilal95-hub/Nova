@@ -8,10 +8,11 @@ const {
   Collection, 
   REST, 
   Routes, 
-  ActivityType 
+  ActivityType,
+  EmbedBuilder,
+  AttachmentBuilder
 } = require('discord.js');
-const { AttachmentBuilder } = require('discord.js');
-const { generateRankSvg } = require('./rankCard');
+const { generateRankSvg, generateLevelUpSvg } = require('./rankCard');
 
 // ---------------------------------------------------------
 // 1. INITIALIZE EXPRESS WEB SERVER
@@ -96,12 +97,13 @@ app.get('/api/guild/:id', async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// DATA STORES & DASHBOARD APIS (LEVELING & CUSTOM COMMANDS)
+// DATA STORES & DASHBOARD APIS (LEVELING, COMMANDS, TICKETS)
 // ---------------------------------------------------------
 
 const customCommands = new Map(); // guildId -> Array of { trigger, response }
 const levelRewards = new Map();   // guildId -> Array of { level, roleId }
 const userXpStore = new Map();    // guildId -> Map(userId -> { xp, level })
+const guildTicketConfigs = new Map(); // guildId -> { channelId, roleId, message }
 
 // Custom Commands API (Max 10)
 app.post('/api/custom-commands', (req, res) => {
@@ -128,7 +130,6 @@ app.post('/api/level-rewards', (req, res) => {
   levelRewards.set(guildId, guildRewards);
   res.json({ success: true, count: guildRewards.length });
 });
-
 
 // ---------------------------------------------------------
 // DISCORD OAUTH2 & INVITE ROUTE HANDLERS
@@ -162,7 +163,7 @@ app.get('/api/auth/callback', (req, res) => {
   res.redirect('/servers.html');
 });
 
-// Start Express Web Server (Line 69)
+// Start Express Web Server
 app.listen(PORT, () => {
   console.log(`[Web Server] Nova™ Dashboard live on http://localhost:${PORT}`);
 });
@@ -254,13 +255,13 @@ function setRotatingActivity() {
 // ---------------------------------------------------------
 
 // Bot Startup Event
-client.once('clientReady', async () => {
+client.once('ready', async () => {
   console.log(`[Nova™ Bot] Logged in as ${client.user.tag}`);
   await registerSlashCommands();
   setRotatingActivity();
 });
 
-// XP & Level-Up Message Listener (INSERT HERE AT LINE ~262)
+// XP & Level-Up Message Listener
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
@@ -303,24 +304,33 @@ client.on('messageCreate', async (message) => {
 
 // Unified Interaction Listener (Slash Commands & Ticket Buttons)
 client.on('interactionCreate', async (interaction) => {
-  
-
-// ---------------------------------------------------------
-// 5. BOT READY & INTERACTION HANDLERS
-// ---------------------------------------------------------
-
-// Bot Startup Event
-client.once('clientReady', async () => {
-  console.log(`[Nova™ Bot] Logged in as ${client.user.tag}`);
-  await registerSlashCommands();
-  setRotatingActivity();
-});
-
-// Unified Interaction Listener (Slash Commands & Ticket Buttons)
-client.on('interactionCreate', async (interaction) => {
 
   // 1. Handle Slash Commands
   if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === 'rank') {
+      await interaction.deferReply();
+
+      const guildId = interaction.guild.id;
+      const user = interaction.user;
+
+      const guildXpMap = userXpStore.get(guildId);
+      const userData = guildXpMap ? (guildXpMap.get(user.id) || { xp: 0, level: 1 }) : { xp: 0, level: 1 };
+      const neededXp = userData.level * 100;
+      const avatarUrl = user.displayAvatarURL({ extension: 'png', size: 256 });
+
+      const svgString = generateRankSvg(
+        user.username,
+        avatarUrl,
+        userData.level,
+        userData.xp,
+        neededXp,
+        1
+      );
+
+      const attachment = new AttachmentBuilder(Buffer.from(svgString), { name: 'rank-card.svg' });
+      return interaction.editReply({ files: [attachment] });
+    }
+
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
 
@@ -342,12 +352,9 @@ client.on('interactionCreate', async (interaction) => {
     const guild = interaction.guild;
     const user = interaction.user;
 
-    // Retrieve saved support role ID for this guild
     const ticketConfig = guildTicketConfigs.get(guild.id);
     const staffRoleId = ticketConfig ? ticketConfig.roleId : null;
-    
 
-    // Check if user already has an active ticket channel
     const existingChannel = guild.channels.cache.find(
       c => c.name === `ticket-${user.username.toLowerCase()}`
     );
@@ -360,19 +367,17 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     try {
-      // Set private channel permissions
       const permissionOverwrites = [
         {
-          id: guild.id, // Hide from @everyone
+          id: guild.id,
           deny: ['ViewChannel'],
         },
         {
-          id: user.id, // Grant access to ticket creator
+          id: user.id,
           allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles'],
         },
       ];
 
-      // Grant access to support staff role if configured
       if (staffRoleId) {
         permissionOverwrites.push({
           id: staffRoleId,
@@ -380,14 +385,12 @@ client.on('interactionCreate', async (interaction) => {
         });
       }
 
-      // Create new private ticket text channel
       const ticketChannel = await guild.channels.create({
         name: `ticket-${user.username}`,
         type: 0,
         permissionOverwrites: permissionOverwrites,
       });
 
-      // Send greeting embed and alert staff inside channel
       const welcomeEmbed = new EmbedBuilder()
         .setTitle(`🎫 Ticket: ${user.username}`)
         .setDescription(`Hello ${user}, thank you for reaching out! Support staff will assist you shortly.`)
@@ -400,7 +403,6 @@ client.on('interactionCreate', async (interaction) => {
         embeds: [welcomeEmbed]
       });
 
-      // Confirm channel creation to the user
       await interaction.reply({
         content: `Your ticket channel has been created: ${ticketChannel}`,
         ephemeral: true
@@ -419,7 +421,6 @@ client.on('interactionCreate', async (interaction) => {
 // Express Endpoint: Fetch all actual servers
 app.get('/api/user/guilds', async (req, res) => {
   try {
-    // Map all real guilds Nova™ is currently joined to
     const botGuilds = client.guilds.cache.map(guild => ({
       id: guild.id,
       name: guild.name,
@@ -442,3 +443,4 @@ app.get('/api/user/guilds', async (req, res) => {
 
 // Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
+  
