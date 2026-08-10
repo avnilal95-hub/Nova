@@ -250,6 +250,62 @@ function setRotatingActivity() {
 }
 
 // ---------------------------------------------------------
+// 5. BOT READY & EVENT HANDLERS
+// ---------------------------------------------------------
+
+// Bot Startup Event
+client.once('clientReady', async () => {
+  console.log(`[Nova™ Bot] Logged in as ${client.user.tag}`);
+  await registerSlashCommands();
+  setRotatingActivity();
+});
+
+// XP & Level-Up Message Listener (INSERT HERE AT LINE ~262)
+client.on('messageCreate', async (message) => {
+  if (message.author.bot || !message.guild) return;
+
+  const guildId = message.guild.id;
+  const userId = message.author.id;
+
+  if (!userXpStore.has(guildId)) {
+    userXpStore.set(guildId, new Map());
+  }
+
+  const guildXpMap = userXpStore.get(guildId);
+  const userData = guildXpMap.get(userId) || { xp: 0, level: 1 };
+
+  userData.xp += Math.floor(Math.random() * 5) + 1; // Grant 1-5 XP
+  const neededXp = userData.level * 100;
+
+  if (userData.xp >= neededXp) {
+    const oldLevel = userData.level;
+    userData.level += 1;
+
+    const avatarUrl = message.author.displayAvatarURL({ extension: 'png', size: 128 });
+    const levelUpSvg = generateLevelUpSvg(avatarUrl, oldLevel, userData.level);
+    const attachment = new AttachmentBuilder(Buffer.from(levelUpSvg), { name: 'level-up.svg' });
+
+    message.channel.send({
+      content: `🎉 ${message.author}, you leveled up to **Level ${userData.level}**!`,
+      files: [attachment]
+    });
+
+    const rewards = levelRewards.get(guildId) || [];
+    const reward = rewards.find(r => r.level === userData.level);
+    if (reward) {
+      const role = message.guild.roles.cache.get(reward.roleId);
+      if (role) message.member.roles.add(role).catch(() => {});
+    }
+  }
+
+  guildXpMap.set(userId, userData);
+});
+
+// Unified Interaction Listener (Slash Commands & Ticket Buttons)
+client.on('interactionCreate', async (interaction) => {
+  
+
+// ---------------------------------------------------------
 // 5. BOT READY & INTERACTION HANDLERS
 // ---------------------------------------------------------
 
