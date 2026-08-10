@@ -345,6 +345,7 @@ client.on('interactionCreate', async (interaction) => {
     // Retrieve saved support role ID for this guild
     const ticketConfig = guildTicketConfigs.get(guild.id);
     const staffRoleId = ticketConfig ? ticketConfig.roleId : null;
+    
 
     // Check if user already has an active ticket channel
     const existingChannel = guild.channels.cache.find(
@@ -439,8 +440,6 @@ app.get('/api/user/guilds', async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch active bot servers.' });
   }
 });
-
-
 
 // Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
