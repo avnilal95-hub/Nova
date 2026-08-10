@@ -93,6 +93,44 @@ app.get('/api/guild/:id', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------
+// DISCORD OAUTH2 & INVITE ROUTE HANDLERS
+// ---------------------------------------------------------
+
+// 1. Dashboard Login Route
+app.get('/api/auth/discord', (req, res) => {
+  const clientId = process.env.CLIENT_ID;
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN || 'nova-novatm.up.railway.app';
+  const redirectUri = encodeURIComponent(`https://${domain}/api/auth/callback`);
+  
+  const scope = encodeURIComponent('identify guilds');
+  const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+
+  res.redirect(discordAuthUrl);
+});
+
+// 2. Direct Bot Invite Route
+app.get('/api/invite', (req, res) => {
+  const clientId = process.env.CLIENT_ID;
+  const permissions = '8'; // Administrator
+  const scope = encodeURIComponent('bot applications.commands');
+
+  const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=${scope}`;
+
+  res.redirect(inviteUrl);
+});
+
+// 3. OAuth2 Callback Endpoint
+app.get('/api/auth/callback', (req, res) => {
+  res.redirect('/servers.html');
+});
+
+// Start Express Web Server (Line 69)
+app.listen(PORT, () => {
+  console.log(`[Web Server] Nova™ Dashboard live on http://localhost:${PORT}`);
+});
+
+
 // Start Express Web Server
 app.listen(PORT, () => {
   console.log(`[Web Server] Nova™ Dashboard live on http://localhost:${PORT}`);
