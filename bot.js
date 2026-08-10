@@ -10,6 +10,8 @@ const {
   Routes, 
   ActivityType 
 } = require('discord.js');
+const { AttachmentBuilder } = require('discord.js');
+const { generateRankSvg } = require('./rankCard');
 
 // ---------------------------------------------------------
 // 1. INITIALIZE EXPRESS WEB SERVER
@@ -92,6 +94,41 @@ app.get('/api/guild/:id', async (req, res) => {
     res.status(404).json({ error: 'Guild not found or bot not in server' });
   }
 });
+
+// ---------------------------------------------------------
+// DATA STORES & DASHBOARD APIS (LEVELING & CUSTOM COMMANDS)
+// ---------------------------------------------------------
+
+const customCommands = new Map(); // guildId -> Array of { trigger, response }
+const levelRewards = new Map();   // guildId -> Array of { level, roleId }
+const userXpStore = new Map();    // guildId -> Map(userId -> { xp, level })
+
+// Custom Commands API (Max 10)
+app.post('/api/custom-commands', (req, res) => {
+  const { guildId, trigger, response } = req.body;
+  if (!guildId || !trigger || !response) return res.status(400).json({ error: 'Missing parameters.' });
+
+  const guildCmds = customCommands.get(guildId) || [];
+  if (guildCmds.length >= 10) return res.status(400).json({ error: 'Maximum 10 custom commands allowed.' });
+
+  guildCmds.push({ trigger: trigger.toLowerCase(), response });
+  customCommands.set(guildId, guildCmds);
+  res.json({ success: true, count: guildCmds.length });
+});
+
+// Level Rewards API (Max 15)
+app.post('/api/level-rewards', (req, res) => {
+  const { guildId, level, roleId } = req.body;
+  if (!guildId || !level || !roleId) return res.status(400).json({ error: 'Missing parameters.' });
+
+  const guildRewards = levelRewards.get(guildId) || [];
+  if (guildRewards.length >= 15) return res.status(400).json({ error: 'Maximum 15 reward roles allowed.' });
+
+  guildRewards.push({ level: parseInt(level), roleId });
+  levelRewards.set(guildId, guildRewards);
+  res.json({ success: true, count: guildRewards.length });
+});
+
 
 // ---------------------------------------------------------
 // DISCORD OAUTH2 & INVITE ROUTE HANDLERS
@@ -346,6 +383,8 @@ app.get('/api/user/guilds', async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch active bot servers.' });
   }
 });
+
+
 
 // Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
