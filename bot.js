@@ -130,12 +130,6 @@ app.listen(PORT, () => {
   console.log(`[Web Server] Nova™ Dashboard live on http://localhost:${PORT}`);
 });
 
-
-// Start Express Web Server
-app.listen(PORT, () => {
-  console.log(`[Web Server] Nova™ Dashboard live on http://localhost:${PORT}`);
-});
-
 // ---------------------------------------------------------
 // 2. INITIALIZE DISCORD BOT CLIENT
 // ---------------------------------------------------------
