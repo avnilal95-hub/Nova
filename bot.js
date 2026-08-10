@@ -416,7 +416,6 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-
 // Express Endpoint: Fetch all actual servers
 app.get('/api/user/guilds', async (req, res) => {
   try {
