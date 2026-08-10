@@ -215,30 +215,113 @@ function setRotatingActivity() {
 // ---------------------------------------------------------
 // 5. BOT READY & INTERACTION HANDLERS
 // ---------------------------------------------------------
-client.once('ready', async () => {
+
+// Bot Startup Event
+client.once('clientReady', async () => {
   console.log(`[Nova™ Bot] Logged in as ${client.user.tag}`);
   await registerSlashCommands();
   setRotatingActivity();
 });
 
+// Unified Interaction Listener (Slash Commands & Ticket Buttons)
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
 
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+  // 1. Handle Slash Commands
+  if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
 
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(`Error executing ${interaction.commandName}:`, error);
-    const errorPayload = { content: 'There was an error executing this command!', ephemeral: true };
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followup(errorPayload);
-    } else {
-      await interaction.reply(errorPayload);
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(`Error executing ${interaction.commandName}:`, error);
+      const errorPayload = { content: 'There was an error executing this command!', ephemeral: true };
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followup(errorPayload);
+      } else {
+        await interaction.reply(errorPayload);
+      }
+    }
+  }
+
+  // 2. Handle Ticket Creation Button Clicks
+  if (interaction.isButton() && interaction.customId === 'create_ticket_btn') {
+    const guild = interaction.guild;
+    const user = interaction.user;
+
+    // Retrieve saved support role ID for this guild
+    const ticketConfig = guildTicketConfigs.get(guild.id);
+    const staffRoleId = ticketConfig ? ticketConfig.roleId : null;
+
+    // Check if user already has an active ticket channel
+    const existingChannel = guild.channels.cache.find(
+      c => c.name === `ticket-${user.username.toLowerCase()}`
+    );
+
+    if (existingChannel) {
+      return interaction.reply({
+        content: `You already have an open ticket: ${existingChannel}`,
+        ephemeral: true
+      });
+    }
+
+    try {
+      // Set private channel permissions
+      const permissionOverwrites = [
+        {
+          id: guild.id, // Hide from @everyone
+          deny: ['ViewChannel'],
+        },
+        {
+          id: user.id, // Grant access to ticket creator
+          allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles'],
+        },
+      ];
+
+      // Grant access to support staff role if configured
+      if (staffRoleId) {
+        permissionOverwrites.push({
+          id: staffRoleId,
+          allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'],
+        });
+      }
+
+      // Create new private ticket text channel
+      const ticketChannel = await guild.channels.create({
+        name: `ticket-${user.username}`,
+        type: 0,
+        permissionOverwrites: permissionOverwrites,
+      });
+
+      // Send greeting embed and alert staff inside channel
+      const welcomeEmbed = new EmbedBuilder()
+        .setTitle(`🎫 Ticket: ${user.username}`)
+        .setDescription(`Hello ${user}, thank you for reaching out! Support staff will assist you shortly.`)
+        .setColor('#8b5cf6')
+        .setTimestamp();
+
+      const staffPing = staffRoleId ? `<@&${staffRoleId}>` : '';
+      await ticketChannel.send({
+        content: `${user} ${staffPing}`,
+        embeds: [welcomeEmbed]
+      });
+
+      // Confirm channel creation to the user
+      await interaction.reply({
+        content: `Your ticket channel has been created: ${ticketChannel}`,
+        ephemeral: true
+      });
+
+    } catch (err) {
+      console.error('[Ticket Channel Creation Error]', err);
+      await interaction.reply({
+        content: 'Failed to create ticket channel. Verify bot permissions in server.',
+        ephemeral: true
+      });
     }
   }
 });
+
 
 // Express Endpoint: Fetch all actual servers
 app.get('/api/user/guilds', async (req, res) => {
