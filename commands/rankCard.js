@@ -9,10 +9,8 @@
  * @returns {string} SVG markup string
  */
 function generateRankSvg(username, avatarUrl, level, currentXp, neededXp, rank = 1) {
-  // Ensure display name starts with @ if not present
   const displayName = username.startsWith('@') ? username : `@${username}`;
 
-  // Calculate progress bar width (Max width: 600px)
   const maxBarWidth = 600;
   const progressRatio = Math.min(currentXp / Math.max(neededXp, 1), 1);
   const fillWidth = Math.max(Math.floor(progressRatio * maxBarWidth), 20);
