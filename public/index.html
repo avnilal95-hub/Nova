@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova | 24/7 Discord Bot Runner & Security Engine</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="dark-theme">
+
+  <!-- Sticky Glassmorphism Navigation Bar -->
+  <nav class="navbar navbar-expanded">
+    <div class="nav-brand">
+      <div class="logo-box">N</div>
+      <span class="brand-name">Nova</span>
+      <span class="nav-status-badge"><span class="dot green"></span> 24/7 Online</span>
+    </div>
+
+    <div class="nav-links-desktop">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#commands" class="nav-link">Commands</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+      <a href="setup.html" class="nav-link">Documentation</a>
+    </div>
+
+    <div class="nav-actions">
+      <a href="/api/auth/discord" class="btn btn-purple btn-sm">Login Dashboard</a>
+    </div>
+  </nav>
+
+  <!-- Central Hero Section -->
+  <main class="hero-section hero-expanded">
+    <div class="badge glow-badge">
+      <i data-lucide="zap"></i> 24/7 Discord Bot Runner & Security Engine
+    </div>
+
+    <h1 class="hero-title-nova">Nova</h1>
+
+    <p class="hero-subtitle">
+      Empower your community with high-speed moderation, anti-nuke protection, automated role assignment, and over 200+ slash commands.
+    </p>
+
+    <div class="hero-actions-vertical">
+      <a href="/api/auth/discord" class="btn btn-purple btn-lg glowing-btn">
+        <i data-lucide="log-in"></i> Login to your account
+      </a>
+      <a href="/api/auth/discord" class="btn btn-outline btn-lg">
+        <i data-lucide="user-plus"></i> Invite bot
+      </a>
+    </div>
+
+    <!-- Live System Metric Counter Banner -->
+    <div class="hero-metrics-bar">
+      <div class="metric-item">
+        <span class="metric-value">200+</span>
+        <span class="metric-label">Slash Commands</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-value">99.9%</span>
+        <span class="metric-label">Uptime Guarantee</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-value">&lt; 30ms</span>
+        <span class="metric-label">Gateway Latency</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Core Features Showcase -->
+  <section class="dashboard-container section-padding" id="features">
+    <div class="section-header">
+      <h2 class="section-title"><i data-lucide="shield-check"></i> Built For Scale & Security</h2>
+      <p class="section-subtitle">Everything your Discord server needs in one unified dashboard.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="card-icon green"><i data-lucide="shield-alert"></i></div>
+        <h3>Anti-Nuke Protection</h3>
+        <p>Instantly blocks unauthorized mass bans, channel deletions, or role wipeouts from malicious administrators.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon blue"><i data-lucide="cpu"></i></div>
+        <h3>Node.js & Discord.js Engine</h3>
+        <p>Powered by asynchronous execution to guarantee zero command delays even under heavy server load.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon light-blue"><i data-lucide="music"></i></div>
+        <h3>Lavalink Audio Streaming</h3>
+        <p>High-bitrate voice playback with zero stuttering, supporting custom queues and playlist management.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon purple"><i data-lucide="sliders"></i></div>
+        <h3>Web-Based Customization</h3>
+        <p>Manage server settings, role rewards, and web announcements directly from your mobile browser.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Command Showcase Hub -->
+  <section class="dashboard-container section-padding" id="commands">
+    <div class="section-header">
+      <h2 class="section-title"><i data-lucide="terminal"></i> Command Engine Hub</h2>
+      <p class="section-subtitle">Explore primary control commands available in Nova</p>
+    </div>
+
+    <div class="command-grid">
+      <!-- /ping Card -->
+      <div class="command-card">
+        <div class="command-header">
+          <span class="command-name">/ping</span>
+          <span class="command-tag system">System</span>
+        </div>
+        <p class="command-desc">
+          Displays real-time performance metrics, Node.js runtime environment, server API round-trip latency, and WebSocket Gateway status.
+        </p>
+        <div class="command-preview-box">
+          <code>Node.js: v20.11.0 | Gateway: 28ms | Server: 42ms</code>
+        </div>
+      </div>
+
+      <!-- /ban Card -->
+      <div class="command-card">
+        <div class="command-header">
+          <span class="command-name">/ban</span>
+          <span class="command-tag moderation">Moderation</span>
+        </div>
+        <p class="command-desc">
+          Bans a specified member with dual DM and server alerts, hierarchy verification, and customizable message deletion history options.
+        </p>
+        <div class="command-preview-box">
+          <code>Usage: /ban user:@member reason:"Rule violation" delete_messages:1</code>
+        </div>
+      </div>
+
+      <!-- /unban Card -->
+      <div class="command-card">
+        <div class="command-header">
+          <span class="command-name">/unban</span>
+          <span class="command-tag moderation">Moderation</span>
+        </div>
+        <p class="command-desc">
+          Revokes a user's ban using their 17 to 20-digit Discord User ID, verifies ban status, and sends automated rejoin notifications via DM.
+        </p>
+        <div class="command-preview-box">
+          <code>Usage: /unban user_id:"123456789012345678" reason:"Appeal accepted"</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="dashboard-container section-padding" id="faq">
+    <div class="section-header">
+      <h2 class="section-title"><i data-lucide="help-circle"></i> Frequently Asked Questions</h2>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-card">
+        <h4>How do I access the Web Dashboard?</h4>
+        <p>Simply click on "Login to your account" above to authorize via Discord OAuth2. You can then select any server where you have administrative permissions.</p>
+      </div>
+
+      <div class="faq-card">
+        <h4>Is Nova hosted 24/7?</h4>
+        <p>Yes! Nova runs continuously on high-uptime cloud infrastructure via Node.js, ensuring your server remains protected around the clock.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Expanded Footer -->
+  <footer class="footer-expanded">
+    <div class="footer-content">
+      <div class="nav-brand">
+        <div class="logo-box">N</div>
+        <span class="brand-name">Nova</span>
+      </div>
+      <p class="footer-text">© 2026 Nova Discord Bot. Powered by Node.js & Discord.js.</p>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
