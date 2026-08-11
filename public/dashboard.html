@@ -13,7 +13,7 @@
   <!-- TOP BAR / HEADER -->
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-toggle" id="menuToggleBtn">
+      <button class="menu-toggle" id="menuToggleBtn" aria-label="Toggle Navigation Menu">
         <i data-lucide="menu"></i>
       </button>
       <div class="brand">
@@ -31,11 +31,30 @@
   <!-- MAIN WRAPPER -->
   <div class="dashboard-container">
 
-    <!-- SIDEBAR DRAWER -->
+    <!-- SIDEBAR DRAWER (LEFT SIDE) -->
     <aside class="sidebar" id="sidebarDrawer">
+      
+      <!-- SERVER HEADER & LOGOUT -->
+      <div class="sidebar-server-header">
+        <div class="server-info-box">
+          <img id="sidebarServerIcon" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Server Icon" class="server-avatar">
+          <div class="server-text">
+            <h3 id="sidebarServerName">Loading Server...</h3>
+            <span class="server-status-dot"><span class="dot green"></span> Active Session</span>
+          </div>
+        </div>
+        
+        <!-- Logout / Switch Server Button -->
+        <a href="servers.html" class="btn-logout-server" id="logoutServerBtn">
+          <i data-lucide="log-out"></i> Logout from server
+        </a>
+      </div>
+
+      <hr class="sidebar-divider">
+
+      <!-- MODULE MENU NAVIGATION -->
       <div class="sidebar-header">
-        <h3>Nova™ Menu</h3>
-        <p class="sidebar-sub">Select Module</p>
+        <p class="sidebar-sub">SELECT MODULE</p>
         <button class="close-sidebar" id="closeSidebarBtn">
           <i data-lucide="x"></i>
         </button>
@@ -47,7 +66,7 @@
         </button>
 
         <button class="menu-item" data-tab="moderation">
-          <i data-lucide="shield"></i> Moderation
+          <i data-lucide="shield"></i> Moderation Controls
         </button>
 
         <button class="menu-item" data-tab="ticket">
@@ -55,11 +74,11 @@
         </button>
 
         <button class="menu-item" data-tab="leveling">
-          <i data-lucide="award"></i> Leveling <span class="badge-tag">(Max 15 Roles)</span>
+          <i data-lucide="award"></i> Leveling System
         </button>
 
         <button class="menu-item" data-tab="custom">
-          <i data-lucide="code"></i> Custom Commands <span class="badge-tag">(Max 10)</span>
+          <i data-lucide="code"></i> Custom Commands
         </button>
 
         <button class="menu-item" data-tab="announcements">
@@ -68,7 +87,7 @@
       </nav>
     </aside>
 
-    <!-- CONTENT PANELS -->
+    <!-- MAIN CONTENT PANELS -->
     <main class="main-content">
 
       <!-- 1. BOT PREFIX TAB -->
@@ -78,7 +97,7 @@
           <p class="panel-subtitle">Configure the command trigger prefix for this server.</p>
 
           <div class="form-group">
-            <label>Server Command Prefix</label>
+            <label for="botPrefixInput">Server Command Prefix</label>
             <input type="text" id="botPrefixInput" placeholder="e.g. !" value="!">
           </div>
 
@@ -114,24 +133,27 @@
           <p class="panel-subtitle">Deploy ticket creation panels directly into your server channels.</p>
 
           <div class="form-group">
-            <label>Target Channel ID</label>
-            <input type="text" id="ticketChannelId" placeholder="123456789012345678">
+            <label for="ticketChannelSelect">Target Channel</label>
+            <select id="ticketChannelSelect" class="custom-select">
+              <option value="">Select a channel...</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label>Support Staff Role ID</label>
-            <input type="text" id="ticketRoleId" placeholder="987654321098765432">
+            <label for="ticketRoleSelect">Support Staff Role</label>
+            <select id="ticketRoleSelect" class="custom-select">
+              <option value="">Select a role...</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label>Ticket Embed Description</label>
+            <label for="ticketMessage">Ticket Embed Description</label>
             <textarea id="ticketMessage" rows="3" placeholder="Click the button below to open a ticket with support staff."></textarea>
           </div>
 
           <button class="btn btn-purple btn-full glowing-btn" id="deployTicketBtn">
             <i data-lucide="send"></i> Deploy Ticket Panel
           </button>
-          <div id="ticketStatus" class="status-box"></div>
         </div>
       </section>
 
@@ -148,18 +170,25 @@
 
           <div class="form-grid" style="margin-top: 15px;">
             <div class="form-group">
-              <label>Required Level</label>
+              <label for="levelReq">Required Level</label>
               <input type="number" id="levelReq" placeholder="5" min="1" max="100">
             </div>
             <div class="form-group">
-              <label>Reward Role ID</label>
-              <input type="text" id="levelRoleId" placeholder="123456789012345678">
+              <label for="levelRoleSelect">Reward Role</label>
+              <select id="levelRoleSelect" class="custom-select">
+                <option value="">Select a role...</option>
+              </select>
             </div>
           </div>
 
           <button class="btn btn-purple btn-full glowing-btn" id="addLevelRoleBtn">
             <i data-lucide="plus-circle"></i> + Add Level Role Reward
           </button>
+
+          <!-- DYNAMIC LEVEL REWARDS LIST CONTAINER -->
+          <div class="dynamic-list-container" id="levelRewardsList">
+            <!-- Items added will render here with delete buttons -->
+          </div>
         </div>
       </section>
 
@@ -176,11 +205,11 @@
 
           <div class="form-grid" style="margin-top: 15px;">
             <div class="form-group">
-              <label>Command Trigger (e.g. !website or rule1)</label>
+              <label for="cmdTrigger">Command Trigger (e.g. !website)</label>
               <input type="text" id="cmdTrigger" placeholder="!website">
             </div>
             <div class="form-group">
-              <label>Bot Response Message</label>
+              <label for="cmdResponse">Bot Response Message</label>
               <textarea id="cmdResponse" rows="2" placeholder="Check out our website at https://nova.app"></textarea>
             </div>
           </div>
@@ -188,6 +217,11 @@
           <button class="btn btn-purple btn-full glowing-btn" id="addCustomCmdBtn">
             <i data-lucide="plus-circle"></i> + Create Custom Command
           </button>
+
+          <!-- DYNAMIC CUSTOM COMMANDS LIST CONTAINER -->
+          <div class="dynamic-list-container" id="customCmdsList">
+            <!-- Items added will render here with delete buttons -->
+          </div>
         </div>
       </section>
 
@@ -198,19 +232,20 @@
           <p class="panel-subtitle">Dispatch remote web messages directly into a target Discord channel.</p>
 
           <div class="form-group">
-            <label>Target Channel ID</label>
-            <input type="text" id="targetChannelId" placeholder="123456789012345678">
+            <label for="targetChannelSelect">Target Channel</label>
+            <select id="targetChannelSelect" class="custom-select">
+              <option value="">Select a channel...</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label>Announcement Content</label>
+            <label for="announcementText">Announcement Content</label>
             <textarea id="announcementText" rows="3" placeholder="Type your broadcast message here..."></textarea>
           </div>
 
           <button class="btn btn-purple btn-full glowing-btn" id="sendMsgBtn">
             <i data-lucide="send"></i> Send Announcement
           </button>
-          <div id="statusMessage" class="status-box"></div>
         </div>
       </section>
 
@@ -218,5 +253,10 @@
   </div>
 
   <script src="js/app.js"></script>
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
 </body>
-</html>
+  </html>
+  
