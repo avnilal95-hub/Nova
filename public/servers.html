@@ -23,8 +23,8 @@
     </div>
   </nav>
 
-  <!-- Main Container -->
-  <section class="dashboard-container section-padding">
+  <!-- Main Section Wrapper -->
+  <main class="page-container section-padding">
     
     <!-- Page Header & Live Counters -->
     <div class="servers-header">
@@ -55,69 +55,38 @@
       <div class="filter-pills">
         <button class="pill active" data-filter="all">All Servers</button>
         <button class="pill" data-filter="active">
-          <span class="dot green"></span> Active Server
+          <span class="dot green"></span> Active Servers
         </button>
         <button class="pill" data-filter="inactive">
-          <span class="dot black"></span> Not Active
+          <span class="dot black"></span> Inactive Servers
         </button>
       </div>
     </div>
 
-    <!-- Custom Smooth Scroll Container -->
-    <div class="servers-scroll-container" id="serversContainer">
-      
-      <!-- CARD 1: ACTIVE SERVER EXAMPLE -->
-      <div class="server-card active-card" data-server-name="Gaming Lounge" data-status="active">
-        <div class="server-banner" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600');">
-          <span class="status-indicator active-status">
-            <span class="dot green"></span> Active Server
-          </span>
-        </div>
-        <div class="server-body">
-          <div class="server-header">
-            <img class="server-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Server Icon">
-            <div class="server-info">
-              <h3 class="server-name">Gaming Lounge</h3>
-              <span class="server-members"><i data-lucide="users"></i> 1,420 Members</span>
-            </div>
-          </div>
-          <p class="server-description">Official community server configured with Nova anti-nuke, auto-moderation, and high-bitrate audio streaming.</p>
-          <div class="card-footer-actions">
-            <a href="dashboard.html?guild_id=123456789" class="btn btn-purple btn-full glowing-btn">
-              Go to Dashboard <i data-lucide="arrow-right"></i>
-            </a>
-          </div>
-        </div>
+    <!-- ACTIVE SERVERS SECTION -->
+    <div class="server-section-group" id="activeSectionGroup">
+      <div class="section-category-header">
+        <h3 class="category-title"><span class="dot green"></span> Active Servers</h3>
+        <span class="category-badge" id="activeCategoryCount">0 Servers</span>
       </div>
-
-      <!-- CARD 2: NOT ACTIVE SERVER EXAMPLE -->
-      <div class="server-card inactive-card" data-server-name="Chill Squad" data-status="inactive">
-        <div class="server-banner fallback-banner">
-          <span class="status-indicator inactive-status">
-            <span class="dot black"></span> Not Active Server
-          </span>
-        </div>
-        <div class="server-body">
-          <div class="server-header">
-            <div class="server-avatar-placeholder">CS</div>
-            <div class="server-info">
-              <h3 class="server-name">Chill Squad</h3>
-              <span class="server-members"><i data-lucide="users"></i> 380 Members</span>
-            </div>
-          </div>
-          <p class="server-description">Nova is not present in this server yet. Invite Nova to enable 24/7 moderation and web controls.</p>
-          <div class="card-footer-actions">
-            <a href="/api/auth/discord" class="btn btn-outline btn-full invite-btn">
-              <i data-lucide="user-plus"></i> Invite Bot
-            </a>
-          </div>
-        </div>
+      <div class="servers-scroll-container" id="activeServersContainer">
+        <!-- Active servers render here -->
       </div>
-
     </div>
-  </section>
 
-  <!-- Script Execution -->
+    <!-- INACTIVE SERVERS SECTION -->
+    <div class="server-section-group" id="inactiveSectionGroup" style="margin-top: 35px;">
+      <div class="section-category-header">
+        <h3 class="category-title"><span class="dot black"></span> Inactive Servers (Add Nova™)</h3>
+        <span class="category-badge grey-badge" id="inactiveCategoryCount">0 Servers</span>
+      </div>
+      <div class="servers-scroll-container" id="inactiveServersContainer">
+        <!-- Inactive servers render here -->
+      </div>
+    </div>
+
+  </main>
+
   <script src="js/app.js"></script>
 </body>
 </html>
