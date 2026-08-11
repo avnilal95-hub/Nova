@@ -10,7 +10,10 @@ const {
   Routes, 
   ActivityType,
   EmbedBuilder,
-  AttachmentBuilder
+  AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } = require('discord.js');
 const { generateRankSvg, generateLevelUpSvg } = require('./rankCard');
 
@@ -89,10 +92,32 @@ app.get('/api/guild/:id', async (req, res) => {
     res.json({
       name: guild.name,
       memberCount: guild.memberCount,
-      icon: guild.iconURL(),
+      icon: guild.iconURL({ dynamic: true }),
     });
   } catch (err) {
     res.status(404).json({ error: 'Guild not found or bot not in server' });
+  }
+});
+
+// Express Endpoint: Fetch Guild Channels & Roles for Dropdown Selectors
+app.get('/api/guild/:id/details', async (req, res) => {
+  try {
+    const guild = await client.guilds.fetch(req.params.id);
+    const channels = await guild.channels.fetch();
+    const roles = await guild.roles.fetch();
+
+    const textChannels = channels
+      .filter(c => c && c.isTextBased())
+      .map(c => ({ id: c.id, name: `#${c.name}` }));
+
+    const serverRoles = roles
+      .filter(r => r && r.name !== '@everyone')
+      .map(r => ({ id: r.id, name: r.name }));
+
+    return res.json({ channels: textChannels, roles: serverRoles });
+  } catch (err) {
+    console.error('[Nova™ Details Fetch Error]', err);
+    return res.status(500).json({ error: 'Failed to fetch guild channels or roles.' });
   }
 });
 
@@ -105,7 +130,7 @@ const levelRewards = new Map();   // guildId -> Array of { level, roleId }
 const userXpStore = new Map();    // guildId -> Map(userId -> { xp, level })
 const guildTicketConfigs = new Map(); // guildId -> { channelId, roleId, message }
 
-// Custom Commands API (Max 10)
+// Custom Commands API (Create & Add)
 app.post('/api/custom-commands', (req, res) => {
   const { guildId, trigger, response } = req.body;
   if (!guildId || !trigger || !response) return res.status(400).json({ error: 'Missing parameters.' });
@@ -113,12 +138,26 @@ app.post('/api/custom-commands', (req, res) => {
   const guildCmds = customCommands.get(guildId) || [];
   if (guildCmds.length >= 10) return res.status(400).json({ error: 'Maximum 10 custom commands allowed.' });
 
-  guildCmds.push({ trigger: trigger.toLowerCase(), response });
+  const formattedTrigger = trigger.toLowerCase().trim();
+  guildCmds.push({ trigger: formattedTrigger, response });
   customCommands.set(guildId, guildCmds);
-  res.json({ success: true, count: guildCmds.length });
+
+  res.json({ success: true, count: guildCmds.length, commands: guildCmds });
 });
 
-// Level Rewards API (Max 15)
+// Custom Commands API (Delete)
+app.delete('/api/custom-commands', (req, res) => {
+  const { guildId, trigger } = req.body;
+  if (!guildId || !trigger) return res.status(400).json({ error: 'Missing parameters.' });
+
+  let guildCmds = customCommands.get(guildId) || [];
+  guildCmds = guildCmds.filter(c => c.trigger !== trigger.toLowerCase().trim());
+  customCommands.set(guildId, guildCmds);
+
+  res.json({ success: true, count: guildCmds.length, commands: guildCmds });
+});
+
+// Level Rewards API (Create & Add)
 app.post('/api/level-rewards', (req, res) => {
   const { guildId, level, roleId } = req.body;
   if (!guildId || !level || !roleId) return res.status(400).json({ error: 'Missing parameters.' });
@@ -128,7 +167,55 @@ app.post('/api/level-rewards', (req, res) => {
 
   guildRewards.push({ level: parseInt(level), roleId });
   levelRewards.set(guildId, guildRewards);
-  res.json({ success: true, count: guildRewards.length });
+
+  res.json({ success: true, count: guildRewards.length, rewards: guildRewards });
+});
+
+// Level Rewards API (Delete)
+app.delete('/api/level-rewards', (req, res) => {
+  const { guildId, level } = req.body;
+  if (!guildId || !level) return res.status(400).json({ error: 'Missing parameters.' });
+
+  let guildRewards = levelRewards.get(guildId) || [];
+  guildRewards = guildRewards.filter(r => r.level !== parseInt(level));
+  levelRewards.set(guildId, guildRewards);
+
+  res.json({ success: true, count: guildRewards.length, rewards: guildRewards });
+});
+
+// Ticket Panel Deploy API
+app.post('/api/tickets/deploy', async (req, res) => {
+  const { guildId, channelId, roleId, message } = req.body;
+  if (!guildId || !channelId) return res.status(400).json({ error: 'Missing channel or server ID.' });
+
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({ error: 'Invalid target channel.' });
+    }
+
+    guildTicketConfigs.set(guildId, { channelId, roleId, message });
+
+    const embed = new EmbedBuilder()
+      .setTitle('🎫 Support Ticket Portal')
+      .setDescription(message || 'Click the button below to open a private support ticket.')
+      .setColor('#8b5cf6')
+      .setTimestamp();
+
+    const ticketBtn = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('create_ticket_btn')
+        .setLabel('Create Ticket')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎫')
+    );
+
+    await channel.send({ embeds: [embed], components: [ticketBtn] });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Ticket Deploy Error]', err);
+    return res.status(500).json({ error: 'Failed to deploy ticket panel to channel.' });
+  }
 });
 
 // ---------------------------------------------------------
@@ -184,7 +271,7 @@ const client = new Client({
 client.commands = new Collection();
 
 // ---------------------------------------------------------
-// 3. DYNAMIC COMMAND HANDLER (Loads 200+ Commands)
+// 3. DYNAMIC COMMAND HANDLER (Loads Commands)
 // ---------------------------------------------------------
 const commandsPath = path.join(__dirname, 'commands');
 const slashCommandsData = [];
@@ -261,13 +348,22 @@ client.once('ready', async () => {
   setRotatingActivity();
 });
 
-// XP & Level-Up Message Listener
+// XP, Level-Up, & Custom Commands Listener
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
   const guildId = message.guild.id;
   const userId = message.author.id;
+  const content = message.content.trim().toLowerCase();
 
+  // Custom Command Handler
+  const guildCmds = customCommands.get(guildId) || [];
+  const matchedCmd = guildCmds.find(c => c.trigger === content);
+  if (matchedCmd) {
+    return message.channel.send(matchedCmd.response);
+  }
+
+  // XP & Leveling Engine
   if (!userXpStore.has(guildId)) {
     userXpStore.set(guildId, new Map());
   }
@@ -443,4 +539,3 @@ app.get('/api/user/guilds', async (req, res) => {
 
 // Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
-  
