@@ -18,14 +18,18 @@ const {
 const { generateRankSvg, generateLevelUpSvg } = require('./rankCard');
 
 // ---------------------------------------------------------
-// 1. INITIALIZE EXPRESS WEB SERVER
+// 1. INITIALIZE EXPRESS WEB SERVER & STATIC ASSETS
 // ---------------------------------------------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Serve static website files from public/
+// Explicit static routing for subfolders inside public/
+app.use('/css', express.static(path.join(__dirname, 'public/css')));
+app.use('/js', express.static(path.join(__dirname, 'public/js')));
+
+// Serve all static website files from public/
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Node.js Memory Storage for Guild Configuration
@@ -51,7 +55,6 @@ app.post('/api/prefix', (req, res) => {
     return res.status(400).json({ error: 'Missing guildId or prefix' });
   }
 
-  // Update prefix mapping in Node.js memory (Default: '+')
   const newPrefix = prefix.trim() || '+';
   guildPrefixes.set(guildId, newPrefix);
 
@@ -539,3 +542,4 @@ app.get('/api/user/guilds', async (req, res) => {
 
 // Login using DISCORD_TOKEN
 client.login(process.env.DISCORD_TOKEN);
+        
