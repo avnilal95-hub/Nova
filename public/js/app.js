@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchBotStatus();
 
   // 2. Route Specific Initialization: Server Selector (servers.html)
-  if (document.getElementById('serversContainer')) {
+  if (document.getElementById('activeServersContainer') || document.getElementById('serversContainer')) {
     loadRealServers();
     setupSearchFilter();
   }
@@ -68,70 +68,113 @@ async function fetchBotStatus() {
 
 // Fetch and dynamically render actual joined Discord servers (servers.html)
 async function loadRealServers() {
-  const container = document.getElementById('serversContainer');
+  const activeContainer = document.getElementById('activeServersContainer');
+  const inactiveContainer = document.getElementById('inactiveServersContainer');
+  const legacyContainer = document.getElementById('serversContainer');
+
   const totalCounter = document.getElementById('totalServerCount');
   const activeCounter = document.getElementById('activeServerCount');
-
-  if (!container) return;
+  const activeCategoryCount = document.getElementById('activeCategoryCount');
+  const inactiveCategoryCount = document.getElementById('inactiveCategoryCount');
 
   try {
     const res = await fetch('/api/user/guilds');
     const data = await res.json();
 
     if (!data.success || !data.guilds || data.guilds.length === 0) {
-      container.innerHTML = `
+      const emptyHtml = `
         <div class="server-card">
-          <div class="server-body" style="text-align: center; padding: 40px;">
-            <p class="server-description">No active servers found. Invite Nova™ to your server to begin!</p>
+          <div class="server-body" style="text-align: center; padding: 30px;">
+            <p class="server-description">No servers found. Invite Nova™ to your server to begin!</p>
             <a href="/api/invite" class="btn btn-purple btn-full" style="margin-top: 12px;">Invite Bot</a>
           </div>
         </div>
       `;
+      if (activeContainer) activeContainer.innerHTML = emptyHtml;
+      if (inactiveContainer) inactiveContainer.innerHTML = '';
+      if (legacyContainer) legacyContainer.innerHTML = emptyHtml;
       if (totalCounter) totalCounter.textContent = '0';
       if (activeCounter) activeCounter.textContent = '0';
       return;
     }
 
-    if (totalCounter) totalCounter.textContent = data.guilds.length;
-    if (activeCounter) activeCounter.textContent = data.guilds.filter(g => g.botJoined).length;
+    const activeGuilds = data.guilds.filter(g => g.botJoined);
+    const inactiveGuilds = data.guilds.filter(g => !g.botJoined);
 
-    container.innerHTML = data.guilds.map(guild => `
-      <div class="server-card ${guild.botJoined ? 'active-card' : 'inactive-card'}" data-server-name="${guild.name.toLowerCase()}">
-        <div class="server-banner ${guild.banner ? '' : 'fallback-banner'}" ${guild.banner ? `style="background-image: url('${guild.banner}');"` : ''}>
-          <span class="status-indicator ${guild.botJoined ? 'active-status' : 'inactive-status'}">
-            <span class="dot ${guild.botJoined ? 'green' : 'black'}"></span> ${guild.botJoined ? 'Active Server' : 'Not Active Server'}
-          </span>
-        </div>
-        <div class="server-body">
-          <div class="server-header">
-            <img class="server-avatar" src="${guild.icon}" alt="${guild.name} Icon">
-            <div class="server-info">
-              <h3 class="server-name">${guild.name}</h3>
-              <span class="server-members"><i data-lucide="users"></i> ${guild.memberCount.toLocaleString()} Members</span>
+    // Update Counter Badges
+    if (totalCounter) totalCounter.textContent = data.guilds.length;
+    if (activeCounter) activeCounter.textContent = activeGuilds.length;
+    if (activeCategoryCount) activeCategoryCount.textContent = `${activeGuilds.length} Servers`;
+    if (inactiveCategoryCount) inactiveCategoryCount.textContent = `${inactiveGuilds.length} Servers`;
+
+    // 1. Render Active Servers Section
+    if (activeContainer) {
+      if (activeGuilds.length === 0) {
+        activeContainer.innerHTML = `<p class="empty-server-msg">No active servers running Nova™.</p>`;
+      } else {
+        activeContainer.innerHTML = activeGuilds.map(guild => `
+          <div class="server-card active-card" data-server-name="${guild.name.toLowerCase()}" data-status="active">
+            <div class="server-banner ${guild.banner ? '' : 'fallback-banner'}" ${guild.banner ? `style="background-image: url('${guild.banner}');"` : ''}>
+              <span class="status-indicator active-status">
+                <span class="dot green"></span> Active Server
+              </span>
+            </div>
+            <div class="server-body">
+              <div class="server-header">
+                <img class="server-avatar" src="${guild.icon}" alt="${guild.name} Icon">
+                <div class="server-info">
+                  <h3 class="server-name">${guild.name}</h3>
+                  <span class="server-members"><i data-lucide="users"></i> ${(guild.memberCount || 0).toLocaleString()} Members</span>
+                </div>
+              </div>
+              <p class="server-description">${guild.description || 'Active Nova™ protected server.'}</p>
+              <div class="card-footer-actions">
+                <a href="dashboard.html?guild_id=${guild.id}" class="btn btn-purple btn-full glowing-btn">
+                  Go to Dashboard <i data-lucide="arrow-right"></i>
+                </a>
+              </div>
             </div>
           </div>
-          <p class="server-description">${guild.description}</p>
-          <div class="card-footer-actions">
-            ${guild.botJoined 
-              ? `<a href="dashboard.html?guild_id=${guild.id}" class="btn btn-purple btn-full glowing-btn">Go to Dashboard <i data-lucide="arrow-right"></i></a>`
-              : `<a href="/api/invite" class="btn btn-outline btn-full invite-btn"><i data-lucide="user-plus"></i> Invite Bot</a>`
-            }
+        `).join('');
+      }
+    }
+
+    // 2. Render Inactive Servers Section
+    if (inactiveContainer) {
+      if (inactiveGuilds.length === 0) {
+        inactiveContainer.innerHTML = `<p class="empty-server-msg">All your servers have Nova™ added!</p>`;
+      } else {
+        inactiveContainer.innerHTML = inactiveGuilds.map(guild => `
+          <div class="server-card inactive-card" data-server-name="${guild.name.toLowerCase()}" data-status="inactive">
+            <div class="server-banner fallback-banner">
+              <span class="status-indicator inactive-status">
+                <span class="dot black"></span> Not Active
+              </span>
+            </div>
+            <div class="server-body">
+              <div class="server-header">
+                <img class="server-avatar" src="${guild.icon}" alt="${guild.name} Icon">
+                <div class="server-info">
+                  <h3 class="server-name">${guild.name}</h3>
+                  <span class="server-members"><i data-lucide="users"></i> ${(guild.memberCount || 0).toLocaleString()} Members</span>
+                </div>
+              </div>
+              <p class="server-description">Nova™ is not in this server yet. Invite Nova™ to enable 24/7 moderation and web controls.</p>
+              <div class="card-footer-actions">
+                <a href="/api/invite?guild_id=${guild.id}" class="btn btn-outline btn-full invite-btn">
+                  <i data-lucide="user-plus"></i> Invite Bot
+                </a>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    `).join('');
+        `).join('');
+      }
+    }
 
     if (window.lucide) lucide.createIcons();
 
   } catch (err) {
     console.error('[Load Servers Error]', err);
-    container.innerHTML = `
-      <div class="server-card">
-        <div class="server-body" style="text-align: center; padding: 20px;">
-          <p class="server-description" style="color: #ef4444;">Failed to fetch servers from backend API.</p>
-        </div>
-      </div>
-    `;
   }
 }
 
@@ -215,15 +258,39 @@ function populateDropdowns() {
 
 function setupSearchFilter() {
   const searchInput = document.getElementById('serverSearchInput');
-  if (!searchInput) return;
+  const filterPills = document.querySelectorAll('.filter-pills .pill');
+  const activeGroup = document.getElementById('activeSectionGroup');
+  const inactiveGroup = document.getElementById('inactiveSectionGroup');
 
-  searchInput.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase().trim();
-    const cards = document.querySelectorAll('.server-card');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.server-card');
 
-    cards.forEach(card => {
-      const name = card.getAttribute('data-server-name') || '';
-      card.style.display = name.includes(term) ? 'flex' : 'none';
+      cards.forEach(card => {
+        const name = card.getAttribute('data-server-name') || '';
+        card.style.display = name.includes(term) ? 'flex' : 'none';
+      });
+    });
+  }
+
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      filterPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      const filterType = pill.getAttribute('data-filter');
+
+      if (filterType === 'active') {
+        if (activeGroup) activeGroup.style.display = 'block';
+        if (inactiveGroup) inactiveGroup.style.display = 'none';
+      } else if (filterType === 'inactive') {
+        if (activeGroup) activeGroup.style.display = 'none';
+        if (inactiveGroup) inactiveGroup.style.display = 'block';
+      } else {
+        if (activeGroup) activeGroup.style.display = 'block';
+        if (inactiveGroup) inactiveGroup.style.display = 'block';
+      }
     });
   });
 }
@@ -540,4 +607,3 @@ function showToast(msg, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3500);
 }
-  
